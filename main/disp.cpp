@@ -331,6 +331,8 @@ inline void Display::show_frame(uint8_t *p_rgb_image, unsigned int i_frame_perio
 			}
 		}
 #pragma GCC diagnostic pop
+
+		p_virtualmatrix->flipDMABuffer();
 	}
 /*
 	uint32_t now = xTaskGetTickCount();
