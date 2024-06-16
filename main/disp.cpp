@@ -43,7 +43,6 @@
 #include "stb_image_resize2.h"
 #pragma GCC diagnostic pop
 
-//#define LOG_TAG "Matrix Display"
 constexpr char LOG_TAG[] = "Matrix Display";
 
 Display::Display(TaskHandle_t &hfrt_display_task) :
@@ -69,17 +68,13 @@ esp_err_t Display::start(SemaphoreHandle_t in_use_semaphore, QueueHandle_t image
 
 	// Allocate and start the HUB75 matrix
 	HUB75_I2S_CFG mxconfig;
-	/*mxconfig.mx_width = 64;
-	mxconfig.mx_height = 64;
-	mxconfig.chain_length = 4;*/
-	mxconfig.mx_width = 128;
-	mxconfig.mx_height = 64;
-	mxconfig.chain_length = 2;
+	mxconfig.mx_width = MTX_HUB75_PANEL_W;
+	mxconfig.mx_height = MTX_HUB75_PANEL_H;
+	mxconfig.chain_length = MTX_HUB75_ROWS * MTX_HUB75_COLS;
 	mxconfig.min_refresh_rate = 57; // will select the right bitdepth for both 60 Hz and 90 Hz at 128x128
-	//mxconfig.min_refresh_rate = 87;
-	mxconfig.clkdiv_num = clkdiv_num; //14
-	mxconfig.clkdiv_a = clkdiv_a; //21
-	mxconfig.clkdiv_b = clkdiv_b; //13
+	mxconfig.clkdiv_num = clkdiv_num;
+	mxconfig.clkdiv_a = clkdiv_a;
+	mxconfig.clkdiv_b = clkdiv_b;
 	mxconfig.latch_blanking = 1;
 	mxconfig.clkphase = false;
 	mxconfig.gpio.r1 = MTX_HUB75_R1;
@@ -96,15 +91,15 @@ esp_err_t Display::start(SemaphoreHandle_t in_use_semaphore, QueueHandle_t image
 	mxconfig.gpio.lat = MTX_HUB75_LATCH;
 	mxconfig.gpio.oe = MTX_HUB75_BLANK;
 	mxconfig.gpio.clk = MTX_HUB75_CLK;
-	mxconfig.double_buff = false;
+	mxconfig.driver = HUB75_I2S_CFG::MTX_HUB75_DRIVER;
+	mxconfig.double_buff = MTX_HUB75_DBUF;
+
 	p_hub75_panel = new MatrixPanel_I2S_DMA(mxconfig);
 	ESP_RETURN_ON_FALSE( p_hub75_panel->begin() , ESP_ERR_NO_MEM, LOG_TAG, "HUB75 library startup failed!");
-	//p_hub75_panel->setBrightness(59); // 724 mA/panel
-	//p_hub75_panel->setBrightness(50); //normal
-	//p_hub75_panel->setBrightness(70);
 	p_hub75_panel->setBrightness(configured_brightness);
-	//p_virtualmatrix = new VirtualMatrixPanel(*p_hub75_panel, 2, 2, 64, 64, CHAIN_BOTTOM_LEFT_UP);
-	p_virtualmatrix = new VirtualMatrixPanel(*p_hub75_panel, 2, 1, 128, 64, CHAIN_TOP_RIGHT_DOWN_ZZ);
+
+	p_virtualmatrix = new VirtualMatrixPanel(*p_hub75_panel, MTX_HUB75_ROWS, MTX_HUB75_COLS, MTX_HUB75_PANEL_W, MTX_HUB75_PANEL_H, MTX_HUB75_CHAIN);
+	p_virtualmatrix->setPhysicalPanelScanRate(MTX_HUB75_SCAN);
 
 	// Enable level shifters output
 	gpio_set_level(MTX_HUB75_nOE, 0);
@@ -651,5 +646,3 @@ void Display::task()
 
 	}
 }
-
-//#undef LOG_TAG
