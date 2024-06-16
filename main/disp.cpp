@@ -123,16 +123,29 @@ void Display::destroy()
 		hfrt_display_task = NULL;
 		vTaskDelete(hfrt_task);
 	}
-	p_virtualmatrix->clearScreen();
+
+	if (p_virtualmatrix != nullptr) {
+		p_virtualmatrix->clearScreen();
+	}
 
 	// Disable level shifters output
 	gpio_set_level(MTX_HUB75_nOE, 1);
 
-	p_hub75_panel->stopDMAoutput();
-	delete p_virtualmatrix;
+	if (p_hub75_panel != nullptr) {
+		p_hub75_panel->stopDMAoutput();
+	}
+
+	if (p_virtualmatrix != nullptr) {
+		delete p_virtualmatrix;
+	}
 	p_virtualmatrix = nullptr;
+
 	//TODO FUCKING BROKEN
-	//delete p_hub75_panel;
+	/*
+	if (p_hub75_panel != nullptr) {
+		delete p_hub75_panel;
+	}
+	*/
 	p_hub75_panel = nullptr;
 }
 
