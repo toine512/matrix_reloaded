@@ -632,13 +632,6 @@ void tud_umount_cb(void)
     }
 }
 
-void tud_suspend_cb(bool none)
-{
-    if (tinyusb_msc_storage_mount(s_storage_handle->base_path) != ESP_OK) {
-        ESP_LOGW(TAG, "tud_umount_cb() mount Fails");
-    }
-}
-
 // Invoked when device is mounted (configured)
 void tud_mount_cb(void)
 {
