@@ -215,6 +215,11 @@ void stats(void *parameter)
 
 extern "C" {
 
+// Hack for when VBUS detection doesn't work
+void tud_suspend_cb(bool) {
+    tud_umount_cb();
+}
+
 void usb_change_operation(tinyusb_msc_event_t *msc_event)
 {
 	static bool first_mount = true;
