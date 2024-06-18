@@ -202,90 +202,6 @@ inline uint8_t * Display::scale(int i_width, int i_height, uint8_t *p_input_buff
 	return p_intermediate_buffer;
 }
 
-		/* static inline uint8_t * scale(int i_width, int i_height, uint8_t *p_input_buffer, uint8_t *p_intermediate_buffer)
-		{
-			// If no scaling needed, p_intermediate_buffer is not used
-			if (i_width == 128 && i_height == 128) {
-				return p_input_buffer;
-			}
-
-			// Else
-			// Select filter
-			stbir_filter use_filter = STBIR_FILTER_CATMULLROM; // for lowest resolution
-			if (i_width > 128 || i_height > 128) { // down-sample
-				use_filter = STBIR_FILTER_POINT_SAMPLE;
-			}
-			else if (i_width > 72 || i_height > 72) {  // 72-128 px
-				use_filter = STBIR_FILTER_TRIANGLE;
-			}
-
-			// Compute scaled dimensions keeping aspect ratio, and offsets for center alignment
-			int i_scaled_width = 128;
-			int i_scaled_height = 128;
-			int i_offset_bytes = 0;
-			int i_skip_bytes = 0;
-			if (i_width > i_height)
-			{
-				i_scaled_height = static_cast<int>(128.0 * static_cast<float>(i_height) / static_cast<float>(i_width) + 0.5);
-				i_offset_bytes = ((128 - i_scaled_height) >> 1) * 128 * 3;
-				// full width occupied, nothing to skip
-			}
-			else if (i_width < i_height)
-			{
-				i_scaled_width = static_cast<int>(128.0 * static_cast<float>(i_width) / static_cast<float>(i_height) + 0.5);
-				i_skip_bytes = (128 - i_scaled_width) * 3;
-				i_offset_bytes = ((128 - i_scaled_width + 1) >> 1) * 3; // (divide by 2 rounding up, then x3) full height occupied, but padding at the begining of the copy goes here
-			}
-
-			// Warning: will fail silently if not enough RAM! (dynamic allocation)
-			stbir_resize(p_input_buffer, i_width, i_height, 0, p_intermediate_buffer, i_scaled_width, i_scaled_height, 0, STBIR_RGB, STBIR_TYPE_UINT8_SRGB, STBIR_EDGE_CLAMP, use_filter);
-
-			// Center scaled frame on black canvas (= display)
-			if (i_offset_bytes > 0 || i_skip_bytes > 0)
-			{
-				uint8_t *p_canvas = p_intermediate_buffer + (128 * 128 * 3 - 1);
-				uint8_t *p_frame = p_intermediate_buffer + (i_scaled_width * i_scaled_height * 3 - 1);
-
-				// Clear from end of canvas to (end - offset)
-				for (int i = 0 ; i < i_offset_bytes ; i++)
-				{
-					*p_canvas-- = 0;
-				}
-
-				// Copy frame with skip cleared pixels between each line
-				for (int y = 1 ; y < i_scaled_height ; y++) // don't do the last line here
-				{
-					for (int x = 0 ; x < i_scaled_width ; x++)
-					{
-						*p_canvas-- = *p_frame--; // B
-						*p_canvas-- = *p_frame--; // G
-						*p_canvas-- = *p_frame--; // R
-					}
-					for (int x = 0 ; x < i_skip_bytes ; x++)
-					{
-						*p_canvas-- = 0;
-					}
-				}
-
-				// Copy last line without skip
-				for (int x = 0 ; x < i_scaled_width ; x++)
-				{
-					*p_canvas-- = *p_frame--; // B
-					*p_canvas-- = *p_frame--; // G
-					*p_canvas-- = *p_frame--; // R
-				}
-
-				// Clear from end of drawing to begining of canvas
-				while (p_canvas >= p_intermediate_buffer)
-				{
-					*p_canvas-- = 0;
-				}
-			}
-
-			return p_intermediate_buffer;
-		} */
-
-
 inline bool Display::test_clear()
 {
 	uint32_t notifications = 0;
@@ -352,45 +268,6 @@ inline void Display::show_frame(uint8_t *p_rgb_image, unsigned int i_frame_perio
 	ESP_LOGE("DEBUG", "Frame time %lu,%lu", i_last_frame_time, now);*/
 }
 
-		/* inline void transfer(uint8_t *p_rgb_image)
-		{
-			for (int16_t y = 0 ; y < 128 ; y++)
-			{
-				if (y >= i_offset_y && y < i_bound_y)
-				{
-					for (int16_t x = 0 ; x < 128 ; x++)
-					{
-						if (x >= i_offset_x && x < i_bound_x)
-						{
-							p_virtualmatrix->drawPixelRGB888(x, y, *p_rgb_image++, *p_rgb_image++, *p_rgb_image++);
-						}
-						else
-						{
-							p_virtualmatrix->drawPixelRGB888(x, y, 0, 0, 0);
-						}
-					}
-				}
-				else
-				{
-					for (int16_t x = 0 ; x < 128 ; x++)
-					{
-						p_virtualmatrix->drawPixelRGB888(x, y, 0, 0, 0);
-					}
-				}
-			}
-		} */
-
-		/* inline void transfer(uint8_t *p_rgb_image)
-		{
-			for (int16_t y = 0 ; y < 128 ; y++)
-			{
-				for (int16_t x = 0 ; x < 128 ; x++, p_rgb_image += 3)
-				{
-					p_virtualmatrix->drawPixelRGB888(x, y, *p_rgb_image, *(p_rgb_image + 1), *(p_rgb_image + 2));
-				}
-			}
-		} */
-
 inline void Display::release_slot_pop_from_q_release_mem(web_server_image_slot_t *p_slot)
 {
 	// Scratch pointer
@@ -416,10 +293,6 @@ void Display::task()
 	uint8_t *p_frame = NULL;
 	uint8_t p_img_source[i_decode_buffer_size]; // 640x640 RGB buffer for rendered images
 	uint8_t p_img_output[128*128*3]; // 128x128 RGB buffer (display canvas) for copying to HUB75 library
-	/*
-	TickType_t i_last_frame_time = xTaskGetTickCount();
-	unsigned int i_frame_period = MIN_IMG_TIME; // time to keep what's currently displayed
-	*/
 	i_last_frame_time = xTaskGetTickCount();
 	i_current_frame_period = i_min_img_dur;
 
@@ -450,14 +323,6 @@ void Display::task()
 
 			switch (p_slot->e_format)
 			{
-			/*case IMG_CLEAR:
-				release_slot_pop_from_q_release_mem(p_slot);
-				// Clear screen
-				p_virtualmatrix->clearScreen();
-				// New image can be displayed immediately
-				i_frame_period = 10;
-				break;*/
-
 			case IMG_FMT_PNG:
 				{
 					p_frame = NULL; // will redirect to one of the buffers depending on scaling being done or not
@@ -473,10 +338,6 @@ void Display::task()
 					// Show
 					if (p_frame != NULL)
 					{
-						/*vTaskDelayUntil(&i_last_frame_time, pdMS_TO_TICKS(i_frame_period));
-						i_last_frame_time = xTaskGetTickCount(); // vTaskDelayUntil actually never sets i_last_frame_time to current tick count, il is just adding the delay to the value so when the deadline is in the past it stays that way forever
-						transfer(p_frame);
-						i_frame_period = MIN_IMG_TIME;*/
 						show_frame(p_frame, i_min_img_dur);
 					}
 				}
@@ -505,7 +366,6 @@ void Display::task()
 							memset(p_img_source, 0, 3 * renderer.decoder.getCanvasHeight() * renderer.decoder.getCanvasWidth());
 
 							// Try to decode first frame
-							//i_animation_state = decoder.playFrame(false, &i_next_frame_period, static_cast<void *>(&renderer_ctx));
 							renderer.play(i_animation_state, i_next_frame_period);
 
 							if (i_animation_state != 1) // Will stop (1 frame or error)
@@ -517,10 +377,6 @@ void Display::task()
 							if ((i_animation_state == 0) && (renderer.decoder.getLastError() == GIF_SUCCESS)) // One frame, treat as static image
 							{
 								p_frame = scale(renderer.decoder.getCanvasWidth(), renderer.decoder.getCanvasHeight(), p_img_source, p_img_output);
-								/*vTaskDelayUntil(&i_last_frame_time, pdMS_TO_TICKS(i_frame_period));
-								i_last_frame_time = xTaskGetTickCount(); // vTaskDelayUntil actually never sets i_last_frame_time to current tick count, il is just adding the delay to the value so when the deadline is in the past it stays that way forever
-								transfer(p_frame);
-								i_frame_period = MIN_IMG_TIME;*/
 								show_frame(p_frame, i_min_img_dur);
 							}
 							else if (i_animation_state == 1) // Animate
@@ -546,10 +402,6 @@ void Display::task()
 
 									// Show frame
 									p_frame = scale(renderer.decoder.getCanvasWidth(), renderer.decoder.getCanvasHeight(), p_img_source, p_img_output);
-									/*vTaskDelayUntil(&i_last_frame_time, pdMS_TO_TICKS(i_frame_period));
-									i_last_frame_time = xTaskGetTickCount(); // vTaskDelayUntil actually never sets i_last_frame_time to current tick count, il is just adding the delay to the value so when the deadline is in the past it stays that way forever
-									transfer(p_frame); // next frame becomes current frame
-									i_frame_period = i_next_frame_period;*/
 									show_frame(p_frame, i_next_frame_period);
 
 									// Reacquire slot
@@ -595,10 +447,6 @@ void Display::task()
 												goto cleanup;
 											}
 											p_frame = scale(renderer.decoder.getCanvasWidth(), renderer.decoder.getCanvasHeight(), p_img_source, p_img_output);
-											/*vTaskDelayUntil(&i_last_frame_time, pdMS_TO_TICKS(i_frame_period));
-											i_last_frame_time = xTaskGetTickCount(); // vTaskDelayUntil actually never sets i_last_frame_time to current tick count, it is just adding the delay to the value so when the deadline is in the past it stays that way forever
-											transfer(p_frame);
-											i_frame_period = i_next_frame_period;*/
 											show_frame(p_frame, i_next_frame_period);
 										}
 
