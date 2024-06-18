@@ -59,6 +59,7 @@
 // App
 #include "helpers.h"
 #include "formats.h"
+#include "version.h"
 
 #ifdef __cplusplus
 extern "C" {

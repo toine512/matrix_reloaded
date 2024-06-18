@@ -185,43 +185,13 @@ web_server_image_slot_t * web_server_find_free_slot()
 // Root handler
 esp_err_t web_server_handler_get_root(httpd_req_t *hidf_req)
 {
-	const char resp[] = "It works!";
+	const char resp[] = "Matrix Reloaded Display v." MTX_VERSION;
 	httpd_resp_set_type(hidf_req, "text/plain");
 	httpd_resp_send(hidf_req, resp, HTTPD_RESP_USE_STRLEN);
 	return ESP_OK;
 }
 
 // Clear display handler
-/*esp_err_t web_server_handler_clear_display(httpd_req_t *hidf_req)
-{
-	static web_server_image_slot_t *p_web_server_image_slot_clear = &web_server_image_slot_clear;
-
-	ESP_LOGV(LOG_TAG, "GET clear screen handler");
-
-	if (pdTRUE == xSemaphoreTake(web_server.hfrt_mem_semphr, pdMS_TO_TICKS(100))) // Lock memory
-	{
-		web_server_image_slot_clear.b_isfree = false;
-
-		xQueueReset(web_server.hfrt_img_q);
-
-		BaseType_t res = xQueueSendToBack(web_server.hfrt_img_q, &p_web_server_image_slot_clear, pdMS_TO_TICKS(100));
-		assert(res == pdTRUE); // Queue size is supposed to be have one more space for this.
-		(void)res;
-
-		// Release memory
-		xSemaphoreGive(web_server.hfrt_mem_semphr);
-
-		httpd_resp_set_type(hidf_req, "text/plain");
-		httpd_resp_sendstr(hidf_req, "Clear display.");
-	}
-	else
-	{
-		web_server_custom_response(hidf_req, "500 Internal Server Error", "Can't take semaphore!");
-		ESP_LOGE(LOG_TAG, "Cannot take memory semaphore to push to front of queue! (100 ms)");
-	}
-
-	return ESP_OK;
-}*/
 esp_err_t web_server_handler_clear_display(httpd_req_t *hidf_req)
 {
 	ESP_LOGV(LOG_TAG, "GET clear screen handler");

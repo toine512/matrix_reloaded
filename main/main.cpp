@@ -32,8 +32,9 @@
 *
 *** ***************************** ***/
 
-// Cstdlib
-#include <stdint.h>
+// C Standard Library
+#include <cstdint>
+#include <cstdio>
 // FreeRTOS
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -48,109 +49,23 @@
 // ESP-IDF Components
 #include <tinyusb.h>
 #include <mdns.h>
-
-
 // App
 #include "wifi.h"
 #include "stor.h"
 #include "web.h"
 #include "disp.h"
 #include "config.h"
+#include "version.h"
 
 
-
-//StaticSemaphore_t web_server_img_semphr;
 SemaphoreHandle_t web_img_mem_use;
-//StaticQueue_t web_server_img_q;
 QueueHandle_t web_img_q;
-//uint8_t web_server_img_q_mem[web_server_image_slots * sizeof(web_server_image_slot_t *)];
-
-
 TaskHandle_t tsk_carousel;
 MatrixPanel_I2S_DMA *dma_display;
 VirtualMatrixPanel  *virtualDisp;
-
 TaskHandle_t disp_task = NULL;
 Display matrix_display(disp_task);
-
 global_config_t config;
-
-void carousel(void *parameter)
-{
-	TickType_t xLastWakeTime = xTaskGetTickCount();
-	const TickType_t xFrequency = (TickType_t)(2000 / portTICK_PERIOD_MS);
-
-	while(true) {
-		//virtualDisp->fillScreenRGB888(255, 0, 0);
-		int16_t x = 0;
-		int16_t y = 0;
-		for ( ; x < 64 ; x++, y++) {
-			virtualDisp->drawPixelRGB888(x, y, 255, 0, 0);
-		}
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		virtualDisp->fillScreenRGB888(0, 255, 0);
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		virtualDisp->fillScreenRGB888(0, 0, 255);
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		virtualDisp->fillScreenRGB888(255, 255, 255);
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-  }
-}
-
-/*void draw_image(PNGDRAW *p_draw)
-{
-	//ESP_LOGI("draw", "draw_image called   iWidth: %d, iBpp: %d", p_draw->iWidth, p_draw->iBpp);
-	int16_t y = static_cast<int16_t>(p_draw->y);
-	uint8_t *p_pixel_base = p_draw->pPixels;
-	for (int16_t x = 0 ; x < p_draw->iWidth ; x++, p_pixel_base += 4) //p_draw->iWidth
-	{
-		virtualDisp->drawPixelRGB888(x, y, *p_pixel_base, *(p_pixel_base+1), *(p_pixel_base+2));
-	}
-}
-
-void display(void *parameters)
-{
-	void *p_receive = NULL;
-
-	while (true)
-	{
-		// Wait forever for a new item in the queue
-		BaseType_t res = xQueuePeek(web_img_q, &p_receive, portMAX_DELAY);
-		assert(res == pdTRUE); // pdFALSE means the semaphore acquisition timed out which indicates INCLUDE_vTaskSuspend is misconfigured
-		(void)res;
-
-		// Lock memory
-		xSemaphoreTake(web_img_mem_use, portMAX_DELAY);
-
-		// Get item from the queue
-		if (xQueuePeek(web_img_q, &p_receive, portTICK_PERIOD_MS) == pdTRUE)
-		{
-			web_server_image_slot_t *p_slot = static_cast<web_server_image_slot_t *>(p_receive);
-
-			PNG decoder;
-			int err = 0;
-			err = decoder.openRAM(p_slot->p_data, web_server_image_buffer_size, draw_image);
-			if(err != 0) {
-				ESP_LOGE("disp", "erreur d'ouverture %d", decoder.getLastError());
-			}
-			err = decoder.decode(NULL, 0);
-			if(err != 0) {
-				ESP_LOGE("disp", "erreur de decodage %d", decoder.getLastError());
-			}
-			decoder.close();
-
-			//virtualDisp->flipDMABuffer();
-
-			// Release slot and pop from queue
-			p_slot->b_isfree = true;
-			xQueueReceive(web_img_q, &p_receive, portTICK_PERIOD_MS);
-		}
-		// else queue was reset in the meantime
-
-		// Release memory
-		xSemaphoreGive(web_img_mem_use);
-	}
-}*/
 
 #ifndef NDEBUG
 
@@ -285,6 +200,8 @@ void app_main()
 
 	#undef GMSK
 
+	printf("Matrix Reloaded Display v." MTX_VERSION " starting...\n");
+
 	// Shared ressources
 	//web_img_mem_use = xSemaphoreCreateBinaryStatic(&web_server_img_semphr);
 	web_img_mem_use = xSemaphoreCreateBinary();
@@ -344,13 +261,10 @@ void app_main()
 	// HTTP srever (dep: default event loop & netif)
 	ESP_ERROR_CHECK( web_server_start(&disp_task, web_img_mem_use, web_img_q) );
 
-	ESP_LOGW("MEM", "free heap %lu", esp_get_free_internal_heap_size());
-	ESP_LOGW("MEM", "free PSRAM %u", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+	printf("Free heap %lu\nFree PSRAM %u\nStartup done!\n", esp_get_free_internal_heap_size(), heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
-	//xTaskCreate(carousel, "couleurs", 1024, nullptr, 19, &tsk_carousel);
-	//xTaskCreate(display, "images", 50*1024, nullptr, 19, &tsk_carousel);
 	#ifndef NDEBUG
-	//xTaskCreate(stats, "stats", 4096, nullptr, 0, nullptr);
+	xTaskCreate(stats, "stats", 4096, nullptr, 0, nullptr);
 	#endif
 }
 }
