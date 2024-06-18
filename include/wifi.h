@@ -48,6 +48,7 @@ extern "C" {
 #endif
 
 void wifi_connection_handler(void *handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+void wifi_ip_display_handler(void *handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 esp_err_t wifi_sta_init();
 esp_err_t wifi_sta_config(const char *country_code, const char *ssid, const char *password);
 esp_err_t wifi_sta_start();

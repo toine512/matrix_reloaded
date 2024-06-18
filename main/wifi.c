@@ -57,6 +57,31 @@ void wifi_connection_handler(void *handler_arg, esp_event_base_t event_base, int
 	}
 }
 
+void wifi_ip_display_handler(void *handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+	if (event_base != IP_EVENT) {
+		return;
+	}
+	switch (event_id) {
+
+		case IP_EVENT_STA_GOT_IP:
+			do {
+			ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
+			printf("My IPv4 address is " IPSTR "\n", IP2STR(&event->ip_info.ip));
+			} while (0);
+			break;
+
+		case IP_EVENT_GOT_IP6:
+			do {
+			ip_event_got_ip6_t *event = (ip_event_got_ip6_t *) event_data;
+			esp_ip6_addr_t ipv6_addr = *&event->ip6_info.ip;
+			printf("My IPv6 address is " IPV6STR "\n", IPV62STR(ipv6_addr));
+			} while (0);
+			break;
+
+	}
+}
+
 // ESP-NETIF must be initialised beforehand
 esp_err_t wifi_sta_init()
 {
@@ -95,12 +120,14 @@ esp_err_t wifi_sta_config(const char *country_code, const char *ssid, const char
 
 esp_err_t wifi_sta_start()
 {
+	RETURN_FAILED( esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &wifi_ip_display_handler, NULL) );
 	RETURN_FAILED( esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_connection_handler, NULL) );
 	return esp_wifi_start();
 }
 
 esp_err_t wifi_sta_stop()
 {
+	RETURN_FAILED( esp_event_handler_unregister(IP_EVENT, ESP_EVENT_ANY_ID, &wifi_ip_display_handler) );
 	RETURN_FAILED( esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_connection_handler) );
 	return esp_wifi_stop();
 }
