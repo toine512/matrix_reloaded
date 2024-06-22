@@ -131,9 +131,13 @@ void stats(void *parameter)
 extern "C" {
 
 // Hack for when VBUS detection doesn't work
+#ifdef USB_NO_VBUS_WORKAROUND
+
 void tud_suspend_cb(bool) {
     tud_umount_cb();
 }
+
+#endif
 
 void usb_change_operation(tinyusb_msc_event_t *msc_event)
 {
