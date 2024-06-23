@@ -34,6 +34,9 @@
 
 #pragma once
 
+// Configuration
+#define PNG_MAX_LINE_LENGTH 640 // must match disp.h
+
 // C Standard Library
 #include <cstdint>
 // ESP-IDF

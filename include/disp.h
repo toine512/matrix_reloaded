@@ -36,7 +36,7 @@
 
 // Configuration
 #define DISPLAY_TASK_PRIORITY 20
-#define DISPLAY_RENDERER_DECODE_SIZE 640 // pixels square
+#define DISPLAY_RENDERER_DECODE_SIZE 640 // pixels square, must match png.h
 
 // C Standard Library
 #include <cstdint>

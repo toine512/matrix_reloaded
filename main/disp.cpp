@@ -105,7 +105,7 @@ esp_err_t Display::start(SemaphoreHandle_t in_use_semaphore, QueueHandle_t image
 	gpio_set_level(MTX_HUB75_nOE, 0);
 
 	// Launch renderer task with stack in PSRAM
-	BaseType_t res = xTaskCreatePinnedToCoreWithCaps(task_static_fn, "renderer", 53*1024 + static_cast<uint32_t>(i_decode_bufsize) + static_cast<uint32_t>(i_disp_bufsize), static_cast<void *>(this), DISPLAY_TASK_PRIORITY, &hfrt_display_task, 1, MALLOC_CAP_SPIRAM);
+	BaseType_t res = xTaskCreatePinnedToCoreWithCaps(task_static_fn, "renderer", 55*1024 + static_cast<uint32_t>(i_decode_bufsize) + static_cast<uint32_t>(i_disp_bufsize), static_cast<void *>(this), DISPLAY_TASK_PRIORITY, &hfrt_display_task, 1, MALLOC_CAP_SPIRAM);
 	if (res != pdPASS)
 	{
 		ESP_LOGE(LOG_TAG, "Cannot create task with error %d !", res);
