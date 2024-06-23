@@ -105,7 +105,7 @@ esp_err_t Display::start(SemaphoreHandle_t in_use_semaphore, QueueHandle_t image
 	gpio_set_level(MTX_HUB75_nOE, 0);
 
 	// Launch renderer task with stack in PSRAM
-	BaseType_t res = xTaskCreatePinnedToCoreWithCaps(task_static_fn, "renderer", 53*1024 + DISPLAY_RENDERER_DECODE_SIZE*DISPLAY_RENDERER_DECODE_SIZE*3 + 128*128*3, static_cast<void *>(this), DISPLAY_TASK_PRIORITY, &hfrt_display_task, 1, MALLOC_CAP_SPIRAM);
+	BaseType_t res = xTaskCreatePinnedToCoreWithCaps(task_static_fn, "renderer", 53*1024 + static_cast<uint32_t>(i_decode_bufsize) + static_cast<uint32_t>(i_disp_bufsize), static_cast<void *>(this), DISPLAY_TASK_PRIORITY, &hfrt_display_task, 1, MALLOC_CAP_SPIRAM);
 	if (res != pdPASS)
 	{
 		ESP_LOGE(LOG_TAG, "Cannot create task with error %d !", res);
@@ -160,19 +160,19 @@ inline uint8_t * Display::scale(int i_width, int i_height, uint8_t *p_input_buff
 {
 	// Reset output offsets
 	i_offset_x = 0;
-	i_bound_x = 128;
+	i_bound_x = i_disp_width;
 	i_offset_y = 0;
-	i_bound_y = 128;
+	i_bound_y = i_disp_height;
 
 	// If no scaling needed, p_intermediate_buffer is not used
-	if (i_width == 128 && i_height == 128) {
+	if (i_width == i_disp_width && i_height == i_disp_height) {
 		return p_input_buffer;
 	}
 
 	// Else
 	// Select filter
 	stbir_filter use_filter = STBIR_FILTER_CATMULLROM; // for lowest resolution
-	if (i_width > 128 || i_height > 128) { // down-sample
+	if (i_width > i_disp_width || i_height > i_disp_height) { // down-sample
 		use_filter = STBIR_FILTER_POINT_SAMPLE;
 	}
 	else if (i_width > 72 || i_height > 72) {  // 72-128 px
@@ -180,19 +180,19 @@ inline uint8_t * Display::scale(int i_width, int i_height, uint8_t *p_input_buff
 	}
 
 	// Compute scaled dimensions keeping aspect ratio, and offsets for center alignment
-	int i_scaled_width = 128;
-	int i_scaled_height = 128;
+	int i_scaled_width = i_disp_width;
+	int i_scaled_height = i_disp_height;
 	if (i_width > i_height)
 	{
-		i_scaled_height = static_cast<int>(128.0 * static_cast<float>(i_height) / static_cast<float>(i_width) + 0.5);
-		i_offset_y = (128 - i_scaled_height + 1) >> 1; // (divide by 2 rounding up)
+		i_scaled_height = static_cast<int>(f_disp_height * static_cast<float>(i_height) / static_cast<float>(i_width) + 0.5);
+		i_offset_y = (i_disp_height - i_scaled_height + 1) >> 1; // (divide by 2 rounding up)
 		i_bound_y = i_scaled_height + i_offset_y;
 		// full width occupied, nothing to skip
 	}
 	else if (i_width < i_height)
 	{
-		i_scaled_width = static_cast<int>(128.0 * static_cast<float>(i_width) / static_cast<float>(i_height) + 0.5);
-		i_offset_x = (128 - i_scaled_width + 1) >> 1; // (divide by 2 rounding up)
+		i_scaled_width = static_cast<int>(f_disp_width * static_cast<float>(i_width) / static_cast<float>(i_height) + 0.5);
+		i_offset_x = (i_disp_width - i_scaled_width + 1) >> 1; // (divide by 2 rounding up)
 		i_bound_x = i_scaled_width + i_offset_x;
 	}
 
@@ -235,11 +235,11 @@ inline void Display::show_frame(uint8_t *p_rgb_image, unsigned int i_frame_perio
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsequence-point"
 // The compiler can't guess bounds of p_rgb_image incrementation.
-		for (int16_t y = 0 ; y < 128 ; y++)
+		for (int16_t y = 0 ; y < i_disp_height ; y++)
 		{
 			if (y >= i_offset_y && y < i_bound_y)
 			{
-				for (int16_t x = 0 ; x < 128 ; x++)
+				for (int16_t x = 0 ; x < i_disp_width ; x++)
 				{
 					if (x >= i_offset_x && x < i_bound_x)
 					{
@@ -253,7 +253,7 @@ inline void Display::show_frame(uint8_t *p_rgb_image, unsigned int i_frame_perio
 			}
 			else
 			{
-				for (int16_t x = 0 ; x < 128 ; x++)
+				for (int16_t x = 0 ; x < i_disp_width ; x++)
 				{
 					p_virtualmatrix->drawPixelRGB888(x, y, 0, 0, 0);
 				}
@@ -291,8 +291,8 @@ void Display::task()
 	void *p_receive = NULL;
 	web_server_image_slot_t *p_slot;
 	uint8_t *p_frame = NULL;
-	uint8_t p_img_source[i_decode_buffer_size]; // 640x640 RGB buffer for rendered images
-	uint8_t p_img_output[128*128*3]; // 128x128 RGB buffer (display canvas) for copying to HUB75 library
+	uint8_t p_img_source[i_decode_bufsize]; // 640x640 RGB buffer for rendered images
+	uint8_t p_img_output[i_disp_bufsize]; // RGB buffer (display canvas) for copying to HUB75 library
 	i_last_frame_time = xTaskGetTickCount();
 	i_current_frame_period = i_min_img_dur;
 

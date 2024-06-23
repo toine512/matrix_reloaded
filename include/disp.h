@@ -34,6 +34,10 @@
 
 #pragma once
 
+// Configuration
+#define DISPLAY_TASK_PRIORITY 20
+#define DISPLAY_RENDERER_DECODE_SIZE 640 // pixels square
+
 // C Standard Library
 #include <cstdint>
 #include <cstring>
@@ -55,14 +59,6 @@
 #include "gif.h"
 #include "png.h"
 
-#define DISPLAY_TASK_PRIORITY 20
-#define DISPLAY_RENDERER_DECODE_SIZE 640 // pixels square
-
-
-#define MIN_IMG_TIME 5 * 1000
-#define MAX_TOTAL_GIF_TIME 6 * 1000
-#define MIN_GIF_LOOPS 8
-
 class Display
 {
 	struct PNGRenderContext
@@ -72,6 +68,12 @@ class Display
 	};
 
 	public:
+		static constexpr uint16_t i_disp_width = MTX_HUB75_PANEL_W * MTX_HUB75_COLS;
+		static constexpr float f_disp_width = static_cast<float>(i_disp_width);
+		static constexpr uint16_t i_disp_height = MTX_HUB75_PANEL_H * MTX_HUB75_ROWS;
+		static constexpr float f_disp_height = static_cast<float>(i_disp_height);
+		static constexpr size_t i_disp_bufsize = i_disp_width * i_disp_height * 3;
+
 		Display(TaskHandle_t &hfrt_display_task);
 		~Display();
 		esp_err_t start(SemaphoreHandle_t in_use_semaphore, QueueHandle_t image_queue, uint8_t configured_brightness, unsigned int min_image_duration, unsigned int max_total_gif_duration, unsigned int min_gif_loops, int gif_aggressive_transp_level, uint8_t clkdiv_num, uint8_t clkdiv_a, uint8_t clkdiv_b);
@@ -95,7 +97,7 @@ class Display
 		inline uint8_t * scale(int i_width, int i_height, uint8_t *p_input_buffer, uint8_t *p_intermediate_buffer);
 
 	private:
-		static const size_t i_decode_buffer_size = DISPLAY_RENDERER_DECODE_SIZE * DISPLAY_RENDERER_DECODE_SIZE * 3;
+		static constexpr size_t i_decode_bufsize = DISPLAY_RENDERER_DECODE_SIZE * DISPLAY_RENDERER_DECODE_SIZE * 3;
 
 		MatrixPanel_I2S_DMA *p_hub75_panel;
 		VirtualMatrixPanel *p_virtualmatrix;
