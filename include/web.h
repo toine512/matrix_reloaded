@@ -44,6 +44,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <assert.h>
+#ifdef MTX_COMPILE_SPLASH
+#include <stdio.h>
+#endif
 // FreeRTOS
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -89,6 +92,11 @@ esp_err_t web_server_handler_post_image(httpd_req_t *hidf_req);
 // Web server operations
 esp_err_t web_server_start(TaskHandle_t *p_disp_task, SemaphoreHandle_t in_use_semaphore, QueueHandle_t image_queue);
 esp_err_t web_server_stop();
+
+// Splash screen to insert in queue
+#ifdef MTX_COMPILE_SPLASH
+esp_err_t web_server_load_splash();
+#endif
 
 #ifdef __cplusplus
 }

@@ -182,6 +182,62 @@ web_server_image_slot_t * web_server_find_free_slot()
 	return NULL;
 }
 
+#ifdef MTX_COMPILE_SPLASH
+esp_err_t web_server_load_splash()
+{
+	// Get a slot
+	web_server_image_slot_t *p_slot = web_server_find_free_slot();
+	if (p_slot == NULL) {
+		return ESP_ERR_INVALID_STATE;
+	}
+
+	// Try to load a GIF
+	FILE *p_fs = fopen("/flash/splash.gif", "r");
+	// Else try to load a PNG
+	if (p_fs == NULL) {
+		p_fs = fopen("/flash/splash.png", "r");
+	}
+	// Else no spash screen
+	if (p_fs == NULL) {
+		return ESP_ERR_NOT_FOUND;
+	}
+	size_t i_read = 0;
+
+	// Find image format
+	i_read = fread((void *)p_slot->p_data, 1, 8, p_fs);
+	if (i_read != 8)
+	{
+		fclose(p_fs);
+		return ESP_ERR_INVALID_SIZE;
+	}
+	p_slot->e_format = detect_image_format(p_slot->p_data);
+
+	// Abort if format not supported
+	if (p_slot->e_format == IMG_FMT_UNSUPPORTED)
+	{
+		fclose(p_fs);
+		return ESP_ERR_NOT_SUPPORTED;
+	}
+
+	// Read remaining data
+	i_read += fread((void *)(p_slot->p_data + i_read), 1, web_server_image_buffer_size - i_read, p_fs);
+	if ( 0 == feof(p_fs) ){
+		fclose(p_fs);
+		return ESP_ERR_INVALID_SIZE;
+	}
+	fclose(p_fs);
+
+	// Configure slot
+	p_slot->b_isfree = false;
+	memset((void *)(p_slot->p_data + i_read), 0, web_server_image_buffer_size - i_read); // fill unused buffer space with zeros
+
+	// Push to image queue
+	xQueueSendToBack(web_server.hfrt_img_q, &p_slot, pdMS_TO_TICKS(100));
+
+	return ESP_OK;
+}
+#endif
+
 // Root handler
 esp_err_t web_server_handler_get_root(httpd_req_t *hidf_req)
 {
@@ -375,6 +431,10 @@ esp_err_t web_server_start(TaskHandle_t *p_disp_task, SemaphoreHandle_t in_use_s
 	ESP_RETURN_ON_ERROR( httpd_register_uri_handler(web_server.hidf_httpd, &web_server_uri_get_root) , LOG_TAG, "Can't register GET root handler!");
 
 	RETURN_FAILED( web_server_alloc_memory() );
+
+	#ifdef MTX_COMPILE_SPLASH
+	web_server_load_splash();
+	#endif
 
 	esp_err_t ret = 0;
 	ESP_GOTO_ON_ERROR( httpd_register_uri_handler(web_server.hidf_httpd, &web_server_uri_get_clear) , cleanup, LOG_TAG, "Can't register GET clear handler!");
