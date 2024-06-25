@@ -146,7 +146,7 @@ void usb_change_operation(tinyusb_msc_event_t *msc_event)
 	// USB plugged, pre-unmount flash: stop PSRAM write ASAP
 	if (msc_event->type == TINYUSB_MSC_EVENT_PREMOUNT_CHANGED && msc_event->mount_changed_data.is_mounted == true)
 	{
-		ESP_LOGW("USB", "preunmount");
+		ESP_LOGI("USB", "preunmount");
 		ESP_ERROR_CHECK_WITHOUT_ABORT( web_server_free_memory() );
 		matrix_display.suspend_task(); // AFTER freeing memory, otherwise the semaphore may deadlock
 	}
@@ -154,7 +154,7 @@ void usb_change_operation(tinyusb_msc_event_t *msc_event)
 	// Post-unmount flash: shutdown the show
 	else if (msc_event->type == TINYUSB_MSC_EVENT_MOUNT_CHANGED && msc_event->mount_changed_data.is_mounted == false)
 	{
-		ESP_LOGW("USB", "postunmount");
+		ESP_LOGI("USB", "postunmount");
 		ESP_ERROR_CHECK_WITHOUT_ABORT( web_server_stop() );
 		matrix_display.destroy(); // web server has a pointer to display
 		mdns_free();
@@ -170,7 +170,7 @@ void usb_change_operation(tinyusb_msc_event_t *msc_event)
 		}
 		else
 		{
-			ESP_LOGW("USB", "postmount");
+			ESP_LOGI("USB", "postmount");
 			// unmount
 			ESP_ERROR_CHECK_WITHOUT_ABORT( tinyusb_msc_unregister_callback(TINYUSB_MSC_EVENT_PREMOUNT_CHANGED) );
 			ESP_ERROR_CHECK_WITHOUT_ABORT( tinyusb_msc_unregister_callback(TINYUSB_MSC_EVENT_MOUNT_CHANGED) );
