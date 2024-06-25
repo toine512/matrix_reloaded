@@ -60,9 +60,6 @@
 
 SemaphoreHandle_t web_img_mem_use;
 QueueHandle_t web_img_q;
-TaskHandle_t tsk_carousel;
-MatrixPanel_I2S_DMA *dma_display;
-VirtualMatrixPanel  *virtualDisp;
 TaskHandle_t disp_task = NULL;
 Display matrix_display(disp_task);
 global_config_t config;
