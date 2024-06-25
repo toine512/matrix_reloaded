@@ -349,7 +349,10 @@ void Display::task()
 
 					GIFRenderer renderer(p_img_source, i_gif_aggressive_transparency_lvl);
 
-					if (renderer.load<LOG_TAG>(p_slot->p_data, web_server_image_buffer_size))
+					if ( !renderer.load<LOG_TAG>(p_slot->p_data, web_server_image_buffer_size) ) {
+						release_slot_pop_from_q_release_mem(p_slot);
+					}
+					else
 					{
 						unsigned int i_total_play_duration = 0;
 						unsigned int i_loop = 0;
@@ -485,7 +488,6 @@ void Display::task()
 							}
 
 						} while (b_loop);
-
 					}
 				}
 				break;
